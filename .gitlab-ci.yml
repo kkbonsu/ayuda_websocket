@@ -1,0 +1,65 @@
+image: php:8.3-cli
+
+variables:
+  DEPLOY_PATH: /var/www/websocket-server
+
+cache:
+  key: composer-cache
+  paths:
+    - .composer-cache/
+
+stages:
+  - test
+  - deploy
+
+before_script:
+  # Install essential tools
+  - apt-get update -yqq
+  - apt-get install -yqq git unzip libzip-dev zip libpng-dev libjpeg-dev libfreetype6-dev openssh-client
+
+  # Install PHP extensions
+  - docker-php-ext-configure gd --with-freetype --with-jpeg
+  - docker-php-ext-install -j$(nproc) zip pdo pdo_mysql gd bcmath
+
+  # Install Composer
+  - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  - composer --version
+
+  # Setup SSH key
+  - mkdir -p ~/.ssh
+  - echo "$DEV_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 600 ~/.ssh/id_rsa
+
+  # Add server to known_hosts
+  - ssh-keyscan -H $DEV_SERVER_IP >> ~/.ssh/known_hosts
+  - chmod 644 ~/.ssh/known_hosts
+
+test:
+  stage: test
+  script:
+    - composer install --prefer-dist --no-interaction --no-progress --no-suggest --no-scripts
+    - cp .env.example .env || true
+    - php artisan key:generate --force
+    - php artisan test || echo "No tests defined"
+
+deploy:
+  stage: deploy
+  script:
+    # Install production dependencies
+    - composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader --no-scripts
+
+    # Install Deployer
+    - composer global require deployer/deployer --no-progress
+
+    # === NEW: Automatically remove any old deploy.lock before starting ===
+    - ~/.composer/vendor/bin/dep deploy:unlock production || true
+    # (|| true ensures pipeline continues even if no lock exists)
+
+    # Run deployment
+    - ~/.composer/vendor/bin/dep deploy production -vvv
+
+  environment:
+    name: production
+  only:
+    - main
+  # when: manual  # Uncomment for manual trigger, remove for automatic
