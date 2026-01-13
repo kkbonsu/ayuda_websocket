@@ -34,5 +34,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'reverb' => [
+        'app_id' => env('REVERB_APP_ID'),
+        'app_secret' => env('REVERB_APP_SECRET'),
+    ],
 
 ];
