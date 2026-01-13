@@ -31,10 +31,10 @@ Route::post('/broadcast-message', function (Request $request) {
     Log::info('Validating app credentials', [
         'app_id' => $appId,
         'app_secret' => $appSecret,
-        'env_app_id' => env('REVERB_APP_ID'),
-        'env_app_secret' => env('REVERB_APP_SECRET'),
+        'env_app_id' => getenv('REVERB_APP_ID'),
+        'env_app_secret' => getenv('REVERB_APP_SECRET'),
     ]);
-    if ($appId != env('REVERB_APP_ID') || $appSecret != env('REVERB_APP_SECRET')) {
+    if ($appId != getenv('REVERB_APP_ID') || $appSecret != getenv('REVERB_APP_SECRET')) {
 
         Log::warning('Invalid app credentials for broadcast', [
             'app_id' => $appId,
