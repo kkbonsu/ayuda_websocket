@@ -28,7 +28,7 @@ Route::post('/broadcast-message', function (Request $request) {
     ]);
 
     // Validate app credentials
-    if ($appId !== env('REVERB_APP_ID') || $appSecret !== env('REVERB_APP_SECRET')) {
+    if ($appId != env('REVERB_APP_ID') || $appSecret != env('REVERB_APP_SECRET')) {
         Log::warning('Invalid app credentials for broadcast', [
             'app_id' => $appId,
             'ip' => $request->ip(),
