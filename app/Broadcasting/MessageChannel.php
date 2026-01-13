@@ -20,16 +20,20 @@ class MessageChannel
      */
     public function join($user, $channel)
     {
-        $token     = request()->bearerToken();
+        $accessToken = request()->header('access-token');
+        $sessionId = request()->header('session-id');
+        $actor = request()->header('x-actor-type', 'user');
         $socketId  = request()->header('X-Socket-ID');
 
         Log::debug('MessageChannel join attempt', [
             'channel'   => $channel,
             'socket_id' => $socketId,
-            'token'     => $token ? 'present' : 'missing',
+            'access_token'     => $accessToken ? 'present' : 'missing',
+            'session_id' => $sessionId ? 'present' : 'missing',
+            'actor' => $actor,
         ]);
 
-        if (!$token) {
+        if (!$accessToken || !$sessionId) {
             return false;
         }
 
@@ -37,7 +41,8 @@ class MessageChannel
             'channel' => $channel,
         ]);
         // Fast path: cached token
-        $cached = WebsocketUser::where('token', $token)
+        $cached = WebsocketUser::where('token', $accessToken)
+            ->where('session_id', $sessionId)
             ->where('expires_at', '>', now())
             ->first();
 
@@ -46,12 +51,18 @@ class MessageChannel
                 'user_id' => $cached->user_id,
                 'channel' => $channel,
             ]);
-            return $this->presenceData($cached->user_id);
+            return $this->presenceData($cached->user_id, [
+                'name' => $cached->name,
+                'type' => $cached->type,
+            ]);
         }
 
         // Slow path: verify with external auth server
-        $response = Http::withToken($token)
-            ->get(env('AUTH_SERVER_URL'));
+        $response = Http::withHeaders([
+            'access-token' => $accessToken,
+            'session-id' => $sessionId,
+            'x-actor-type' => $actor,
+        ])->get(env('AUTH_SERVER_URL'));
 
         if (!$response->successful() || empty($response->json('user_id'))) {
             Log::warning('External auth failed for WebSocket', [
@@ -69,8 +80,13 @@ class MessageChannel
         // Cache for 1 hour
         try {
             WebsocketUser::updateOrCreate(
-                ['user_id' => $data['user_id']],
-                ['token' => $token, 'expires_at' => now()->addHour()]
+                ['user_id' => $data['user_id'], 'session_id' => $sessionId],
+                [
+                    'token' => $accessToken,
+                    'expires_at' => now()->addHour(),
+                    'type' => $data['type'] ?? $actor,
+                    'name' => $data['name'] ?? null,
+                ]
             );
         } catch (\Exception $e) {
             Log::error('Failed to cache websocket token', ['error' => $e->getMessage()]);
@@ -89,6 +105,7 @@ class MessageChannel
         return [
             'user_id'     => $userId,
             'name'   => $extra['name'] ?? $user?->name ?? $extra['email'] ?? 'User',
+            'type'   => $extra['type'] ?? $user?->type ?? 'user',
             // 'avatar' => $user?->avatar ?? $extra['avatar'] ?? null,
             // Add anything else you want visible in the member list
         ];

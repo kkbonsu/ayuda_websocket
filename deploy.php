@@ -7,7 +7,7 @@ require 'recipe/laravel.php';
 set('application', 'websocket-server');
 
 // Project repository
-set('repository', 'git@gitlab.com:samcpu7/websocket-server.git');
+set('repository', 'https://github.com/kkbonsu/ayuda_websocket.git');
 
 // Shared files/dirs between deploys
 add('shared_files', ['.env']);

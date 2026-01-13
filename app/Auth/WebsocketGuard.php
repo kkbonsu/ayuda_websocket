@@ -37,14 +37,23 @@ class WebsocketGuard implements Guard
             return $this->user;
         }
 
-        $token = $this->request->bearerToken();
-        Log::info('WebsocketGuard: Retrieved token', ['token' => $token]);
-        if (!$token) {
+        $accessToken = $this->request->header('access-token');
+        $sessionId = $this->request->header('session-id');
+        $actor = $this->request->header('x-actor-type', 'user');
+
+        Log::info('WebsocketGuard: Retrieved headers', [
+            'access_token' => $accessToken ? 'present' : 'missing',
+            'session_id' => $sessionId ? 'present' : 'missing',
+            'actor' => $actor,
+        ]);
+
+        if (!$accessToken || !$sessionId) {
             return null;
         }
 
         // Fast path: cached token
-        $wsUser = WebsocketUser::where('token', $token)
+        $wsUser = WebsocketUser::where('token', $accessToken)
+            ->where('session_id', $sessionId)
             ->where('expires_at', '>', now())
             ->first();
         Log::info('WebsocketGuard: Cached user lookup', ['user' => $wsUser]);
@@ -54,7 +63,11 @@ class WebsocketGuard implements Guard
         }
 
         // Slow path: verify with your external auth server
-        $response = Http::withToken($token)->withOptions([
+        $response = Http::withHeaders([
+            'access-token' => $accessToken,
+            'session-id' => $sessionId,
+            'x-actor-type' => $actor,
+        ])->withOptions([
             'verify' => app()->environment('production') ? true : false,
         ])->get(env('AUTH_SERVER_URL') ?? 'http://127.0.0.1:8080/api/verify-token');
         Log::info('WebsocketGuard: External auth response', ['status' => $response->status(), 'body' => $response->body()]);
@@ -66,10 +79,15 @@ class WebsocketGuard implements Guard
         Log::info('WebsocketGuard: External auth succeeded', ['data' => $data]);
 
         // Cache it
-        $wsUser = WebsocketUser::updateOrCreate(
-            ['user_id' => $data['user_id']],
-            ['token' => $token, 'expires_at' => now()->addHour()]
-        );
+        $wsUser = WebsocketUser::updateOrCreate([
+            'user_id' => $data['user_id'],
+            'session_id' => $sessionId,
+        ], [
+            'token' => $accessToken,
+            'expires_at' => now()->addHour(),
+            'type' => $data['type'] ?? $actor,
+            'name' => $data['name'] ?? null,
+        ]);
 
         $this->user = $wsUser;
         return $wsUser;
