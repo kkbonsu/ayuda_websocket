@@ -19,7 +19,7 @@ add('writable_dirs', ['bootstrap/cache', 'storage']);
 // Hosts
 host('production')
     ->set('remote_user', 'ubuntu')
-    ->set('hostname', '18.171.56.31')
+    ->set('hostname', '35.178.233.41')
     ->set('deploy_path', '/var/www/websocket-server')
     ->set('identity_file', '~/.ssh/AYUDA.pem');
 
