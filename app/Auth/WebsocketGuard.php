@@ -69,7 +69,7 @@ class WebsocketGuard implements Guard
             'x-actor-type' => $actor,
         ])->withOptions([
             'verify' => app()->environment('production') ? true : false,
-        ])->get(env('AUTH_SERVER_URL') ?? 'http://127.0.0.1:8080/api/verify-token');
+        ])->get(env('AUTH_SERVER_URL') ?? 'https://www.update.ayudahub.com/ghana/api/verify-token');
         Log::info('WebsocketGuard: External auth response', ['status' => $response->status(), 'body' => $response->body()]);
         if (!$response->successful() || empty($response->json('user_id'))) {
             return null;
