@@ -23,6 +23,7 @@ Route::post('/broadcast-message', function (Request $request) {
 
     Log::debug('Broadcast request received', [
         'app_id' => $appId,
+        'app_secret' => $appSecret,
         'ip' => $request->ip(),
     ]);
 
