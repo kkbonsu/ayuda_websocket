@@ -47,6 +47,10 @@ Route::post('/broadcast-message', function (Request $request) {
     $channel = $request->input('channel');
     $event = $request->input('event');
 
+    if (empty($data)) {
+        $data = [];
+    }
+
     if (!$data || !$channel || !$event) {
         Log::warning('Invalid broadcast parameters', [
             'data' => $data,
