@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
-    protected $fillable = ['channel', 'event', 'data'];
+    protected $fillable = ['channel', 'event', 'title', 'data'];
 
     protected $casts = [
         'data' => 'array',

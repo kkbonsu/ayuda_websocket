@@ -56,8 +56,18 @@ class WebsocketGuard implements Guard
             ->where('session_id', $sessionId)
             ->where('expires_at', '>', now())
             ->first();
-        Log::info('WebsocketGuard: Cached user lookup', ['user' => $wsUser]);
+        Log::info('WebsocketGuard: Cached user lookup', ['user' => $wsUser, 'actor' => $actor]);
+        
         if ($wsUser) {
+            // Verify actor type matches cached type
+            if ($wsUser->type !== $actor) {
+                Log::warning('WebsocketGuard: Actor type mismatch in cache', [
+                    'cached_type' => $wsUser->type,
+                    'requested_actor' => $actor,
+                ]);
+                return null;
+            }
+            
             $this->user = $wsUser;
             return $wsUser;
         }
@@ -76,7 +86,21 @@ class WebsocketGuard implements Guard
         }
 
         $data = $response->json();
-        Log::info('WebsocketGuard: External auth succeeded', ['data' => $data]);
+        $returnedType = $data['type'] ?? $actor;
+        
+        // Verify that the returned type matches the requested actor type
+        if ($returnedType !== $actor) {
+            Log::warning('WebsocketGuard: Actor type mismatch', [
+                'expected' => $actor,
+                'received' => $returnedType,
+            ]);
+            return null;
+        }
+        
+        Log::info('WebsocketGuard: External auth succeeded', [
+            'data' => $data,
+            'actor' => $actor,
+        ]);
 
         // Cache it
         $wsUser = WebsocketUser::updateOrCreate([
@@ -85,7 +109,7 @@ class WebsocketGuard implements Guard
         ], [
             'token' => $accessToken,
             'expires_at' => now()->addHour(),
-            'type' => $data['type'] ?? $actor,
+            'type' => $returnedType,
             'name' => $data['name'] ?? null,
         ]);
 

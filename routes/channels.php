@@ -10,6 +10,11 @@ use App\Broadcasting\MessageChannel;
 //     return (int) $user->id === (int) $id;
 // });
 
+
 Broadcast::channel('user.{id}', MessageChannel::class, ['guards' => ['websocket']]);
+
+Broadcast::channel('worker.{id}', MessageChannel::class, ['guards' => ['websocket']]);
+
 Broadcast::channel('group.{roomId}', MessageChannel::class, ['guards' => ['websocket']]);
+
 Broadcast::channel('{channel}', MessageChannel::class, ['guards' => ['websocket']]);

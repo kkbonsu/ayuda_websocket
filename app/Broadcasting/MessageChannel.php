@@ -37,9 +37,32 @@ class MessageChannel
             return false;
         }
 
+        // Validate channel access based on actor type
+        if (preg_match('/^user\.(.+)$/', $channel, $matches)) {
+            // User channel - only allow if actor is 'user'
+            if ($actor !== 'user') {
+                Log::warning('Worker attempted to join user channel', [
+                    'channel' => $channel,
+                    'actor' => $actor,
+                ]);
+                return false;
+            }
+        } elseif (preg_match('/^worker\.(.+)$/', $channel, $matches)) {
+            // Worker channel - only allow if actor is 'worker'
+            if ($actor !== 'worker') {
+                Log::warning('User attempted to join worker channel', [
+                    'channel' => $channel,
+                    'actor' => $actor,
+                ]);
+                return false;
+            }
+        }
+
         Log::info('Authorizing WebSocket channel join', [
             'channel' => $channel,
+            'actor' => $actor,
         ]);
+        
         // Fast path: cached token
         $cached = WebsocketUser::where('token', $accessToken)
             ->where('session_id', $sessionId)
@@ -50,7 +73,19 @@ class MessageChannel
             Log::info('WebSocket user found in cache', [
                 'user_id' => $cached->user_id,
                 'channel' => $channel,
+                'type' => $cached->type,
             ]);
+            
+            // Verify actor type matches cached type
+            if ($cached->type !== $actor) {
+                Log::warning('Actor type mismatch between cached and request', [
+                    'cached_type' => $cached->type,
+                    'requested_actor' => $actor,
+                    'channel' => $channel,
+                ]);
+                return false;
+            }
+            
             return $this->presenceData($cached->user_id, [
                 'name' => $cached->name,
                 'type' => $cached->type,
@@ -73,10 +108,24 @@ class MessageChannel
         }
 
         $data = $response->json();
+        $returnedType = $data['type'] ?? $actor;
+        
+        // Verify that the returned type matches the requested actor type
+        if ($returnedType !== $actor) {
+            Log::warning('Actor type mismatch between backend and request', [
+                'expected' => $actor,
+                'received' => $returnedType,
+                'channel' => $channel,
+            ]);
+            return false;
+        }
+        
         Log::info('WebSocket user verified via external auth', [
             'user_id' => $data['user_id'],
             'channel' => $channel,
+            'type' => $returnedType,
         ]);
+        
         // Cache for 1 hour
         try {
             WebsocketUser::updateOrCreate(
@@ -84,7 +133,7 @@ class MessageChannel
                 [
                     'token' => $accessToken,
                     'expires_at' => now()->addHour(),
-                    'type' => $data['type'] ?? $actor,
+                    'type' => $returnedType,
                     'name' => $data['name'] ?? null,
                 ]
             );

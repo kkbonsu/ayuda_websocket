@@ -46,6 +46,7 @@ Route::post('/broadcast-message', function (Request $request) {
     $data = $request->input('data');
     $channel = $request->input('channel');
     $event = $request->input('event');
+    $title = $request->input('title');
 
     if (empty($data)) {
         $data = [];
@@ -64,19 +65,35 @@ Route::post('/broadcast-message', function (Request $request) {
     $notification=Notification::create([
         'channel' => $channel,
         'event' => $event,
+        'title' => $title,
         'data' => $data,
     ]);
 
-    // Handle per-user storage with Quarkus UUIDs
-    $userIds = $request->input('userIds'); // comma-separated or array
+    // Handle per-user storage with Quarkus UUIDs (works for both users and workers)
+    $userIds = $request->input('userIds'); 
+    $workerIds = $request->input('workerIds'); 
     $userIdArray = [];
+    
     if ($userIds) {
         $userIdArray = is_string($userIds) ? array_map('trim', explode(',', $userIds)) : (array) $userIds;
     }
+    
+    if ($workerIds) {
+        $workerIdArray = is_string($workerIds) ? array_map('trim', explode(',', $workerIds)) : (array) $workerIds;
+        // Add worker IDs to the array (they'll be stored the same way)
+        $userIdArray = array_merge($userIdArray, $workerIdArray);
+    }
 
+    // Check if channel is user-specific
     if (preg_match('/^user\.(\w+)$/', $channel, $matches)) {
         Log::info('Channel is user-specific', ['channel' => $channel, 'user_id' => $matches[1]]);   
         $userIdArray[] = $matches[1]; // Add single user if channel is user-specific
+    }
+    
+    // Check if channel is worker-specific
+    if (preg_match('/^worker\.(\w+)$/', $channel, $matches)) {
+        Log::info('Channel is worker-specific', ['channel' => $channel, 'worker_id' => $matches[1]]);   
+        $userIdArray[] = $matches[1]; // Add single worker if channel is worker-specific
     }
 
     $userIdArray = array_unique($userIdArray); // Dedup
