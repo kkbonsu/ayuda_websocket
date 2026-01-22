@@ -32,6 +32,7 @@ class MessageChannel
 
         Log::debug('MessageChannel join attempt', [
             'channel'   => $channel,
+            'user' => $user,
             'socket_id' => $socketId,
             'access_token'     => $accessToken ? 'present' : 'missing',
             'session_id' => $sessionId ? 'present' : 'missing',
