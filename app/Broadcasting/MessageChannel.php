@@ -20,6 +20,9 @@ class MessageChannel
      */
     public function join($user, $channel)
     {
+        Log::info('User is ' . $user);
+        Log::info('Channel is ' . $channel);
+
         $accessToken = request()->header('access-token');
         $sessionId = request()->header('session-id');
         $actor = request()->header('x-actor-type', 'user');
