@@ -71,17 +71,10 @@ Route::post('/broadcast-message', function (Request $request) {
 
     // Handle per-user storage with Quarkus UUIDs (works for both users and workers)
     $userIds = $request->input('userIds'); 
-    $workerIds = $request->input('workerIds'); 
     $userIdArray = [];
     
     if ($userIds) {
         $userIdArray = is_string($userIds) ? array_map('trim', explode(',', $userIds)) : (array) $userIds;
-    }
-    
-    if ($workerIds) {
-        $workerIdArray = is_string($workerIds) ? array_map('trim', explode(',', $workerIds)) : (array) $workerIds;
-        // Add worker IDs to the array (they'll be stored the same way)
-        $userIdArray = array_merge($userIdArray, $workerIdArray);
     }
 
     // Check if channel is user-specific
