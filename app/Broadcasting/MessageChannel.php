@@ -30,7 +30,7 @@ class MessageChannel
         $actor = request()->header('x-actor-type', 'user');
         $socketId  = request()->header('X-Socket-ID');
 
-        Log::debug('MessageChannel join attempt', [
+        Log::debug('MessageChannel join attempt 2', [
             'channel'   => $channel,
             'user' => $user,
             'socket_id' => $socketId,
