@@ -43,7 +43,7 @@ class HandleClientAck
                 'user_id' => $userId,
                 'notification_id' => $notificationId,
                 'channel' => $message['channel'] ?? 'unknown',
-                'data' => $data,
+                'sender_id' => $data['sender_id'] ?? null,
             ]);
 
             if ($notificationId && $userId) {
