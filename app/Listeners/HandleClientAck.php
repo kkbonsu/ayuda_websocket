@@ -43,6 +43,7 @@ class HandleClientAck
                 'user_id' => $userId,
                 'notification_id' => $notificationId,
                 'channel' => $message['channel'] ?? 'unknown',
+                'data' => $data,
             ]);
 
             if ($notificationId && $userId) {
@@ -56,19 +57,30 @@ class HandleClientAck
                         'delivered_at' => now(),
                     ]);
 
-                    // New: Webhook to Quarkus to update message status
-                    Http::withHeaders(['Authorization' => 'Bearer ' . $message['token']])  // Add shared secret
-                        ->post(env('QUARKUS_BASE_URL') . '/api/admin/messages/ack', [
-                            'messageId' => $messageId,
-                            'recipientId' => $userId,
-                            'newStatus' => 'DELIVERED',
+                    if ($message['token'] && env('QUARKUS_BASE_URL')) {
+                        Http::withHeaders(['Authorization' => 'Bearer ' . $message['token']])
+                            ->post(env('QUARKUS_BASE_URL') . '/api/admin/messages/ack', [
+                                'messageId' => $messageId,
+                                'recipientId' => $userId,
+                                'newStatus' => 'DELIVERED',
+                            ]);
+
+                        Log::info('Notification marked as delivered via ACK', [
+                            'notification_id' => $notificationId,
+                            'user_id' => $userId,
                         ]);
-                    Log::info('Notification marked as delivered via ACK', [
-                        'notification_id' => $notificationId,
-                        'user_id' => $userId,
-                    ]);
+                    }
+                    broadcast(new MessageEvent([
+                        'user_id'  => $userId,
+                        'name'     => $event->user['name'],
+                        'avatar'   => $event->user['avatar'] ?? null,
+                        'message'  => $text,
+                        'sent_at'  => now()->toDateTimeString(),
+                        'channel'  => $channel,
+                    ], "{$channel}", 'NewMessage'))->toOthers();
                 }
             }
+
         }
     }
 }
