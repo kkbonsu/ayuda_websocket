@@ -43,7 +43,7 @@ class HandleClientAck
                 'user_id' => $userId,
                 'notification_id' => $notificationId,
                 'channel' => $message['channel'] ?? 'unknown',
-                'sender_id' => $data['sender_id'] ?? null,
+                'sender_channel' => $message['sender_channel'] ?? 'unknown',
             ]);
 
             if ($notificationId && $userId) {
@@ -71,13 +71,10 @@ class HandleClientAck
                         ]);
                     }
                     broadcast(new MessageEvent([
-                        'user_id'  => $userId,
-                        'name'     => $event->user['name'],
-                        'avatar'   => $event->user['avatar'] ?? null,
-                        'message'  => $text,
-                        'sent_at'  => now()->toDateTimeString(),
-                        'channel'  => $channel,
-                    ], "{$channel}", 'NewMessage'))->toOthers();
+                        'messageId' => $messageId,
+                        'status' => 'DELIVERED',
+                        'channel'  => $message['sender_channel'],
+                    ], "{$message['sender_channel']}", 'NewMessage'))->toOthers();
                 }
             }
 
