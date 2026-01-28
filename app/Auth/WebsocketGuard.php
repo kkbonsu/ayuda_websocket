@@ -39,12 +39,12 @@ class WebsocketGuard implements Guard
 
         $accessToken = $this->request->header('access-token');
         $sessionId = $this->request->header('session-id');
-        $actor = $this->request->header('x-actor-type', 'user');
+        $actor = $this->request->header('x-actor-type');
 
         Log::info('WebsocketGuard: Retrieved headers', [
             'access_token' => $accessToken ? 'present' : 'missing',
             'session_id' => $sessionId ? 'present' : 'missing',
-            'actor' => $actor,
+            'actor' => $actor ? 'present' : 'missing',
         ]);
 
         if (!$accessToken || !$sessionId) {
@@ -60,13 +60,13 @@ class WebsocketGuard implements Guard
         
         if ($wsUser) {
             // Verify actor type matches cached type
-            if ($wsUser->type !== $actor) {
-                Log::warning('WebsocketGuard: Actor type mismatch in cache', [
-                    'cached_type' => $wsUser->type,
-                    'requested_actor' => $actor,
-                ]);
-                return null;
-            }
+            // if ($wsUser->type !== $actor) {
+            //     Log::warning('WebsocketGuard: Actor type mismatch in cache', [
+            //         'cached_type' => $wsUser->type,
+            //         'requested_actor' => $actor,
+            //     ]);
+            //     return null;
+            // }
             
             $this->user = $wsUser;
             return $wsUser;
