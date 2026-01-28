@@ -117,7 +117,15 @@ Route::middleware('auth:websocket')->get('/pending-notifications', function (Req
     Log::info('Fetching pending notifications for user', [
         'user_id' => $request->user()->user_id,
     ]);
-    $userId = $request->user()->user_id;  // From WebsocketUser
+    $userId = $request->user()->user_id;
+    $channel = $request->user()->channel;
+    // From WebsocketUser
+
+    Log::info('Fetching pending notifications for user', [
+        'user_id' => $userId,
+        'channel' => $channel,
+    ]);
+
     $pending = UserNotification::where('user_id', $userId)
         ->where('status', 'pending')
         ->with('notification')
