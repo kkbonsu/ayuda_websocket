@@ -2,13 +2,13 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Event;
-use Laravel\Reverb\Events\MessageReceived;
 use App\Listeners\HandleClientAck;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
+use Laravel\Reverb\Events\MessageReceived;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::share('viteAvailable', file_exists(public_path('build/manifest.json'))
+            || file_exists(public_path('hot')));
+
         Event::listen(
             MessageReceived::class,
             HandleClientAck::class
