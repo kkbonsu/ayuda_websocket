@@ -1,21 +1,15 @@
 <?php
 
-use App\Events\MessageEvent;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-
-use Illuminate\Support\Facades\Http;
-use App\Models\WebsocketUser;
-use App\Models\Notification;
-use App\Models\UserNotification;
 use App\Events\NotificationEvent;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Broadcasting\BroadcastSubscribedEvent;
-
-// routes/api.php
-use App\Broadcasting\MessageChannel;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Models\Notification;
 use App\Models\User;
+use App\Models\UserNotification;
+use App\Models\WebsocketUser;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+// routes/api.php
+use Illuminate\Support\Facades\Route;
 
 Route::post('/broadcast-message', function (Request $request) {
     $appId = $request->header('X-Reverb-App-ID') ?: $request->input('app_id');
@@ -40,6 +34,7 @@ Route::post('/broadcast-message', function (Request $request) {
             'app_id' => $appId,
             'ip' => $request->ip(),
         ]);
+
         return response()->json(['error' => 'Unauthorized application'], 401);
     }
 
@@ -52,17 +47,18 @@ Route::post('/broadcast-message', function (Request $request) {
         $data = [];
     }
 
-    if (!$data || !$channel || !$event) {
+    if (! $data || ! $channel || ! $event) {
         Log::warning('Invalid broadcast parameters', [
             'data' => $data,
             'channel' => $channel,
             'event' => $event,
             'ip' => $request->ip(),
         ]);
+
         return response()->json(['error' => 'Data, channel, and event required'], 400);
     }
 
-    $notification=Notification::create([
+    $notification = Notification::create([
         'channel' => $channel,
         'event' => $event,
         'title' => $title,
@@ -70,23 +66,25 @@ Route::post('/broadcast-message', function (Request $request) {
     ]);
 
     // Handle per-user storage with Quarkus UUIDs (works for both users and workers)
-    $userIds = $request->input('userIds'); 
+    $userIds = $request->input('userIds');
     $userIdArray = [];
-    
+
     if ($userIds) {
         $userIdArray = is_string($userIds) ? array_map('trim', explode(',', $userIds)) : (array) $userIds;
     }
 
     // Check if channel is user-specific
     if (preg_match('/^user\.(\w+)$/', $channel, $matches)) {
-        Log::info('Channel is user-specific', ['channel' => $channel, 'user_id' => $matches[1]]);   
-        $userIdArray[] = $matches[1]; // Add single user if channel is user-specific
+        Log::info('Channel is user-specific', ['channel' => $channel, 'user_id' => $matches[1]]);
+        $userIdArray[] = $matches[1];
+        $type = 'user'; // Add single user if channel is user-specific
     }
-    
+
     // Check if channel is worker-specific
     if (preg_match('/^worker\.(\w+)$/', $channel, $matches)) {
-        Log::info('Channel is worker-specific', ['channel' => $channel, 'worker_id' => $matches[1]]);   
+        Log::info('Channel is worker-specific', ['channel' => $channel, 'worker_id' => $matches[1]]);
         $userIdArray[] = $matches[1]; // Add single worker if channel is worker-specific
+        $type = 'worker';
     }
 
     $userIdArray = array_unique($userIdArray); // Dedup
@@ -96,6 +94,7 @@ Route::post('/broadcast-message', function (Request $request) {
             UserNotification::create([
                 'user_id' => $userId, // string UUID
                 'notification_id' => $notification->id,
+                'type' => $type,
             ]);
         }
     }
@@ -143,5 +142,26 @@ Route::middleware('auth:websocket')->get('/pending-notifications', function (Req
         'user_id' => $userId,
         'count' => $pending->count(),
     ]);
+
     return response()->json(['message' => 'Data re-broadcasted!']);
+});
+
+Route::middleware('auth:websocket')->get('/notification-count', function (Request $request) {
+    
+    $userId = $request->user()->user_id;
+    $type = $request->user()->type;
+
+    Log::info('Fetching undelivered notification count for user', [
+        'user_id' => $userId,
+    ]);
+    $undeliveredCount = UserNotification::where('user_id', $userId)
+        ->where('status', 'pending')
+        ->where('type', $type)
+        ->count();
+
+    return response()->json([
+        'user_id' => $userId,
+        'type' => $type,
+        'message_count' => $undeliveredCount,
+    ]);
 });
