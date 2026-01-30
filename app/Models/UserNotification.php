@@ -12,6 +12,7 @@ class UserNotification extends Model
         'status',  // e.g., 'pending', 'delivered', 'read'
         'delivered_at',
         'read_at',
+        'type',
     ];
 
     protected $casts = [
