@@ -146,7 +146,7 @@ Route::middleware('auth:websocket')->get('/pending-notifications', function (Req
     return response()->json(['message' => 'Data re-broadcasted!']);
 });
 
-Route::middleware('auth:websocket')->get('/notification-count', function (Request $request) {
+Route::middleware('auth:websocket')->get('/notification_count', function (Request $request) {
     
     $userId = $request->user()->user_id;
     $type = $request->user()->type;
