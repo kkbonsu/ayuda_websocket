@@ -108,7 +108,7 @@ class WebsocketGuard implements Guard
             'session_id' => $sessionId,
         ], [
             'token' => $accessToken,
-            'expires_at' => now()->addHour(),
+            'expires_at' => now()->addHours(24),
             'type' => $returnedType,
             'name' => $data['name'] ?? null,
         ]);
