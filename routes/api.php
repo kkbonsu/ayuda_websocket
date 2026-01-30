@@ -68,6 +68,7 @@ Route::post('/broadcast-message', function (Request $request) {
     // Handle per-user storage with Quarkus UUIDs (works for both users and workers)
     $userIds = $request->input('userIds');
     $userIdArray = [];
+    $type = null;
 
     if ($userIds) {
         $userIdArray = is_string($userIds) ? array_map('trim', explode(',', $userIds)) : (array) $userIds;
