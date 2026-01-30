@@ -92,6 +92,11 @@ Route::post('/broadcast-message', function (Request $request) {
 
     foreach ($userIdArray as $userId) {
         if ($userId) {
+            Log::info('Creating user notification', [
+                'user_id' => $userId,
+                'notification_id' => $notification->id,
+                'type' => $type,
+            ]);
             UserNotification::create([
                 'user_id' => $userId, // string UUID
                 'notification_id' => $notification->id,
