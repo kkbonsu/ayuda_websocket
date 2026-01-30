@@ -97,11 +97,12 @@ Route::post('/broadcast-message', function (Request $request) {
                 'notification_id' => $notification->id,
                 'type' => $type,
             ]);
-            UserNotification::create([
+            $typeSaved = UserNotification::create([
                 'user_id' => $userId, // string UUID
                 'notification_id' => $notification->id,
                 'type' => $type,
             ]);
+            $typeSaved = $typeSaved->save();
         }
     }
 
