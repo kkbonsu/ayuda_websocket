@@ -147,12 +147,16 @@ Route::middleware('auth:websocket')->get('/pending-notifications', function (Req
 });
 
 Route::middleware('auth:websocket')->get('/notification_count', function (Request $request) {
-    
+    Log::info('Fetching undelivered notification count for user', [
+        'user_id' => $request->user()->user_id,
+        'type' => $request->user()->type,
+    ]);
     $userId = $request->user()->user_id;
     $type = $request->user()->type;
 
     Log::info('Fetching undelivered notification count for user', [
         'user_id' => $userId,
+
     ]);
     $undeliveredCount = UserNotification::where('user_id', $userId)
         ->where('status', 'pending')
