@@ -8,11 +8,11 @@ class UserNotification extends Model
 {
     protected $fillable = [
         'user_id',
+        'type',
         'notification_id',
         'status',  // e.g., 'pending', 'delivered', 'read'
         'delivered_at',
         'read_at',
-        'type',
     ];
 
     protected $casts = [
